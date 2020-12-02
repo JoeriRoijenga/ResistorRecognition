@@ -135,7 +135,7 @@ def check(model):
   )
 
 if __name__ == "__main__":
-  if len(sys.argv) > 1 and sys.argv[1].lower() == "true":
+  if len(sys.argv) > 1 and sys.argv[1].lower() == "new":
     train_ds, val_ds = settings(downloadDataset())
     model = training(compileModel(dropout(augmentation())), train_ds, val_ds)
     saveModel(model)

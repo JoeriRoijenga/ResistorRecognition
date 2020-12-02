@@ -50,8 +50,7 @@ def settings(data_dir):
 
   # Class names in alphabetical order
   class_names = train_ds.class_names
-  with open('class_names.json', 'w') as file:
-    json.dump(class_names, file)
+  saveClassNames(class_names)
 
   # Configuring the dataset for performance
   AUTOTUNE = tf.data.experimental.AUTOTUNE
@@ -109,19 +108,16 @@ def training(model, train_ds, val_ds):
   )
 
   return model
- 
-def saveModel(model):
-  model.save('./saves/model')
 
-def loadModel():
-  return keras.models.load_model('./saves/model') 
 
 def check(model):
-  sunflower_url = "https://storage.googleapis.com/download.tensorflow.org/example_images/592px-Red_sunflower.jpg"
-  sunflower_path = tf.keras.utils.get_file('Red_sunflower', origin=sunflower_url)
+  # sunflower_url = "https://storage.googleapis.com/download.tensorflow.org/example_images/592px-Red_sunflower.jpg"
+  # sunflower_path = tf.keras.utils.get_file('Red_sunflower', origin=sunflower_url)
+
+  path = "./photos/paardenbloem.jpeg"
 
   img = keras.preprocessing.image.load_img(
-      sunflower_path, target_size=(img_height, img_width)
+      path, target_size=(img_height, img_width)
   )
   img_array = keras.preprocessing.image.img_to_array(img)
   img_array = tf.expand_dims(img_array, 0) # Create a batch
@@ -129,10 +125,28 @@ def check(model):
   predictions = model.predict(img_array)
   score = tf.nn.softmax(predictions[0])
 
-  print(
-      "This image most likely belongs to {} with a {:.2f} percent confidence."
-      .format(class_names[np.argmax(score)], 100 * np.max(score))
-  )
+  return predictions, score
+
+
+def saveModel(model):
+  model.save('./saves/model')
+
+
+def loadModel():
+  return keras.models.load_model('./saves/model') 
+
+
+def saveClassNames():
+  with open('class_names.json', 'w') as file:
+    json.dump(class_names, file)
+
+
+def loadClassNames():
+  with open('class_names.json') as file:
+      names = json.load(file)
+
+  return names
+
 
 if __name__ == "__main__":
   if len(sys.argv) > 1 and sys.argv[1].lower() == "new":
@@ -141,7 +155,11 @@ if __name__ == "__main__":
     saveModel(model)
   else:
     model = loadModel()
-    with open('class_names.json') as file:
-      class_names = json.load(file)
+    class_names = loadClassNames()
     
-  check(model)
+  predictions, score = check(model)
+
+  print(
+      "This image most likely belongs to {} with a {:.2f} percent confidence."
+      .format(class_names[np.argmax(score)], 100 * np.max(score))
+  )

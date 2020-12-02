@@ -8,7 +8,7 @@ from tensorflow import keras
 from tensorflow.keras import layers
 from tensorflow.keras.models import Sequential
 
-# Downloading the dataset of flowers
+# Downloading the datagiset of flowers
 import pathlib
 dataset_url = "https://storage.googleapis.com/download.tensorflow.org/example_images/flower_photos.tgz"
 data_dir = tf.keras.utils.get_file('flower_photos', origin=dataset_url, untar=True)
@@ -183,7 +183,7 @@ model.compile(optimizer='adam',
 
 # model.summary()
 
-epochs = 15
+epochs = 5
 history = model.fit(
   train_ds,
   validation_data=val_ds,

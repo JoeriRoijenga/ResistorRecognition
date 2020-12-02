@@ -101,7 +101,7 @@ def compileModel(model):
 
 
 def training(model, train_ds, val_ds):
-  epochs = 1
+  epochs = 15
   history = model.fit(
     train_ds,
     validation_data=val_ds,
@@ -135,15 +135,13 @@ def check(model):
   )
 
 if __name__ == "__main__":
-  model = None
-
   if len(sys.argv) > 1 and sys.argv[1].lower() == "true":
-    model = loadModel()
-    with open('class_names.json') as file:
-      class_names = json.load(file)
-  else:
     train_ds, val_ds = settings(downloadDataset())
     model = training(compileModel(dropout(augmentation())), train_ds, val_ds)
     saveModel(model)
-
+  else:
+    model = loadModel()
+    with open('class_names.json') as file:
+      class_names = json.load(file)
+    
   check(model)

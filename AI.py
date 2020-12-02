@@ -8,224 +8,142 @@ from tensorflow import keras
 from tensorflow.keras import layers
 from tensorflow.keras.models import Sequential
 
-# Downloading the datagiset of flowers
+import sys
 import pathlib
-dataset_url = "https://storage.googleapis.com/download.tensorflow.org/example_images/flower_photos.tgz"
-data_dir = tf.keras.utils.get_file('flower_photos', origin=dataset_url, untar=True)
-data_dir = pathlib.Path(data_dir)
+import json
 
-# Extra print for path
-# print(pathlib.Path(data_dir))
-
-# image_count = len(list(data_dir.glob('*/*.jpg')))
-# Added count
-# print("Count: " + str(image_count))
-
-# roses = list(data_dir.glob('roses/*'))
-# PIL.Image.open(str(roses[0])).show()
-# PIL.Image.open(str(roses[1])).show()
-
-# Params for the loader
 batch_size = 32
 img_height = 180
 img_width = 180
-
-# Training settings
-train_ds = tf.keras.preprocessing.image_dataset_from_directory(
-  data_dir,
-  validation_split=0.2, # Using 20% for validation
-  subset="training",
-  seed=123,
-  image_size=(img_height, img_width),
-  batch_size=batch_size)
-
-# Validatino settings
-val_ds = tf.keras.preprocessing.image_dataset_from_directory(
-  data_dir,
-  validation_split=0.2,
-  subset="validation",
-  seed=123,
-  image_size=(img_height, img_width),
-  batch_size=batch_size)
-
-# Class names in alphabetical order
-class_names = train_ds.class_names
-# print(class_names)
-
-# Vizualizing
-# plt.figure(figsize=(10, 10))
-# for images, labels in train_ds.take(1):
-#   for i in range(9):
-#     ax = plt.subplot(3, 3, i + 1)
-#     plt.imshow(images[i].numpy().astype("uint8"))
-#     plt.title(class_names[labels[i]])
-#     plt.axis("off")
-
-# plt.show()
-
-# Showing tensor shapes
-# for image_batch, labels_batch in train_ds:
-#   print(image_batch.shape)
-#   print(labels_batch.shape)
-#   break
-
-# Configuring the dataset for performance
-AUTOTUNE = tf.data.experimental.AUTOTUNE
-
-train_ds = train_ds.cache().shuffle(1000).prefetch(buffer_size=AUTOTUNE)
-val_ds = val_ds.cache().prefetch(buffer_size=AUTOTUNE)
-
-# Standardize RGB colour / data
-# normalization_layer = layers.experimental.preprocessing.Rescaling(1./255)
-
-# normalized_ds = train_ds.map(lambda x, y: (normalization_layer(x), y))
-# image_batch, labels_batch = next(iter(normalized_ds))
-# first_image = image_batch[0]
-# Notice the pixels values are now in `[0,1]`.
-# print(np.min(first_image), np.max(first_image))
-
-# Create the model
 num_classes = 5
 
-# model = Sequential([
-#   layers.experimental.preprocessing.Rescaling(1./255, input_shape=(img_height, img_width, 3)),
-#   layers.Conv2D(16, 3, padding='same', activation='relu'),
-#   layers.MaxPooling2D(),
-#   layers.Conv2D(32, 3, padding='same', activation='relu'),
-#   layers.MaxPooling2D(),
-#   layers.Conv2D(64, 3, padding='same', activation='relu'),
-#   layers.MaxPooling2D(),
-#   layers.Flatten(),
-#   layers.Dense(128, activation='relu'),
-#   layers.Dense(num_classes)
-# ])
+class_names = None
 
-# # Compile the model
-# model.compile(optimizer='adam',
-#               loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-#               metrics=['accuracy'])
 
-# model.summary()
+def downloadDataset():
+  dataset_url = "https://storage.googleapis.com/download.tensorflow.org/example_images/flower_photos.tgz"
+  data_dir = tf.keras.utils.get_file('flower_photos', origin=dataset_url, untar=True)
+  data_dir = pathlib.Path(data_dir)
+  return data_dir
 
-# # Train the model
-# epochs=10
-# history = model.fit(
-#   train_ds,
-#   validation_data=val_ds,
-#   epochs=epochs
-# )
 
-# # Visualizing training data
-# acc = history.history['accuracy']
-# val_acc = history.history['val_accuracy']
+def settings(data_dir):
+  global class_names
 
-# loss = history.history['loss']
-# val_loss = history.history['val_loss']
+  # Training settings
+  train_ds = tf.keras.preprocessing.image_dataset_from_directory(
+    data_dir,
+    validation_split=0.2, # Using 20% for validation
+    subset="training",
+    seed=123,
+    image_size=(img_height, img_width),
+    batch_size=batch_size)
 
-# epochs_range = range(epochs)
+  # Validatino settings
+  val_ds = tf.keras.preprocessing.image_dataset_from_directory(
+    data_dir,
+    validation_split=0.2,
+    subset="validation",
+    seed=123,
+    image_size=(img_height, img_width),
+    batch_size=batch_size)
 
-# plt.figure(figsize=(8, 8))
-# plt.subplot(1, 2, 1)
-# plt.plot(epochs_range, acc, label='Training Accuracy')
-# plt.plot(epochs_range, val_acc, label='Validation Accuracy')
-# plt.legend(loc='lower right')
-# plt.title('Training and Validation Accuracy')
+  # Class names in alphabetical order
+  class_names = train_ds.class_names
+  with open('class_names.json', 'w') as file:
+    json.dump(class_names, file)
 
-# plt.subplot(1, 2, 2)
-# plt.plot(epochs_range, loss, label='Training Loss')
-# plt.plot(epochs_range, val_loss, label='Validation Loss')
-# plt.legend(loc='upper right')
-# plt.title('Training and Validation Loss')
-# plt.show()
+  # Configuring the dataset for performance
+  AUTOTUNE = tf.data.experimental.AUTOTUNE
 
-# Model based on Augmentation
-data_augmentation = keras.Sequential(
-  [
-    layers.experimental.preprocessing.RandomFlip("horizontal", 
-                                                 input_shape=(img_height, 
-                                                              img_width,
-                                                              3)),
-    layers.experimental.preprocessing.RandomRotation(0.1),
-    layers.experimental.preprocessing.RandomZoom(0.1),
-  ]
-)
+  train_ds = train_ds.cache().shuffle(1000).prefetch(buffer_size=AUTOTUNE)
+  val_ds = val_ds.cache().prefetch(buffer_size=AUTOTUNE)
 
-# plt.figure(figsize=(10, 10))
-# for images, _ in train_ds.take(1):
-#   for i in range(9):
-#     augmented_images = data_augmentation(images)
-#     ax = plt.subplot(3, 3, i + 1)
-#     plt.imshow(augmented_images[0].numpy().astype("uint8"))
-#     plt.axis("off")
+  return train_ds, val_ds
 
-# plt.show()
 
-# Dropout added
-model = Sequential([
-  data_augmentation,
-  layers.experimental.preprocessing.Rescaling(1./255),
-  layers.Conv2D(16, 3, padding='same', activation='relu'),
-  layers.MaxPooling2D(),
-  layers.Conv2D(32, 3, padding='same', activation='relu'),
-  layers.MaxPooling2D(),
-  layers.Conv2D(64, 3, padding='same', activation='relu'),
-  layers.MaxPooling2D(),
-  layers.Dropout(0.2),
-  layers.Flatten(),
-  layers.Dense(128, activation='relu'),
-  layers.Dense(num_classes)
-])
+def augmentation():
+  # Model based on Augmentation
+  return keras.Sequential(
+    [
+      layers.experimental.preprocessing.RandomFlip("horizontal", 
+                                                  input_shape=(img_height, 
+                                                                img_width,
+                                                                3)),
+      layers.experimental.preprocessing.RandomRotation(0.1),
+      layers.experimental.preprocessing.RandomZoom(0.1),
+    ]
+  )
 
-# Compile Dropout & Augmentation
-model.compile(optimizer='adam',
-              loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-              metrics=['accuracy'])
 
-# model.summary()
+def dropout(data_augmentation):
+  return Sequential([
+    data_augmentation,
+    layers.experimental.preprocessing.Rescaling(1./255),
+    layers.Conv2D(16, 3, padding='same', activation='relu'),
+    layers.MaxPooling2D(),
+    layers.Conv2D(32, 3, padding='same', activation='relu'),
+    layers.MaxPooling2D(),
+    layers.Conv2D(64, 3, padding='same', activation='relu'),
+    layers.MaxPooling2D(),
+    layers.Dropout(0.2),
+    layers.Flatten(),
+    layers.Dense(128, activation='relu'),
+    layers.Dense(num_classes)
+  ])
 
-epochs = 5
-history = model.fit(
-  train_ds,
-  validation_data=val_ds,
-  epochs=epochs
-)
 
-# Visualizing data with Dropout & Augmentation
-# acc = history.history['accuracy']
-# val_acc = history.history['val_accuracy']
+def compileModel(model):
+  model.compile(optimizer='adam',
+                loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+                metrics=['accuracy'])
+  return model
 
-# loss = history.history['loss']
-# val_loss = history.history['val_loss']
 
-# epochs_range = range(epochs)
+def training(model, train_ds, val_ds):
+  epochs = 1
+  history = model.fit(
+    train_ds,
+    validation_data=val_ds,
+    epochs=epochs
+  )
 
-# plt.figure(figsize=(8, 8))
-# plt.subplot(1, 2, 1)
-# plt.plot(epochs_range, acc, label='Training Accuracy')
-# plt.plot(epochs_range, val_acc, label='Validation Accuracy')
-# plt.legend(loc='lower right')
-# plt.title('Training and Validation Accuracy')
+  return model
+ 
+def saveModel(model):
+  model.save('./saves/model')
 
-# plt.subplot(1, 2, 2)
-# plt.plot(epochs_range, loss, label='Training Loss')
-# plt.plot(epochs_range, val_loss, label='Validation Loss')
-# plt.legend(loc='upper right')
-# plt.title('Training and Validation Loss')
-# plt.show()
+def loadModel():
+  return keras.models.load_model('./saves/model') 
 
-sunflower_url = "https://storage.googleapis.com/download.tensorflow.org/example_images/592px-Red_sunflower.jpg"
-sunflower_path = tf.keras.utils.get_file('Red_sunflower', origin=sunflower_url)
+def check(model):
+  sunflower_url = "https://storage.googleapis.com/download.tensorflow.org/example_images/592px-Red_sunflower.jpg"
+  sunflower_path = tf.keras.utils.get_file('Red_sunflower', origin=sunflower_url)
 
-img = keras.preprocessing.image.load_img(
-    sunflower_path, target_size=(img_height, img_width)
-)
-img_array = keras.preprocessing.image.img_to_array(img)
-img_array = tf.expand_dims(img_array, 0) # Create a batch
+  img = keras.preprocessing.image.load_img(
+      sunflower_path, target_size=(img_height, img_width)
+  )
+  img_array = keras.preprocessing.image.img_to_array(img)
+  img_array = tf.expand_dims(img_array, 0) # Create a batch
 
-predictions = model.predict(img_array)
-score = tf.nn.softmax(predictions[0])
+  predictions = model.predict(img_array)
+  score = tf.nn.softmax(predictions[0])
 
-print(
-    "This image most likely belongs to {} with a {:.2f} percent confidence."
-    .format(class_names[np.argmax(score)], 100 * np.max(score))
-)
+  print(
+      "This image most likely belongs to {} with a {:.2f} percent confidence."
+      .format(class_names[np.argmax(score)], 100 * np.max(score))
+  )
+
+if __name__ == "__main__":
+  model = None
+
+  if len(sys.argv) > 1 and sys.argv[1].lower() == "true":
+    model = loadModel()
+    with open('class_names.json') as file:
+      class_names = json.load(file)
+  else:
+    train_ds, val_ds = settings(downloadDataset())
+    model = training(compileModel(dropout(augmentation())), train_ds, val_ds)
+    saveModel(model)
+
+  check(model)

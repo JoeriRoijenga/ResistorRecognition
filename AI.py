@@ -16,10 +16,10 @@ import os
 batch_size = 32
 img_height = 180
 img_width = 180
-num_classes = 5
 
+num_classes = None
 class_names = None
-
+epochs = None
 
 def downloadDataset():
   # dataset_url = "https://storage.googleapis.com/download.tensorflow.org/example_images/flower_photos.tgz"
@@ -33,7 +33,7 @@ def downloadDataset():
 
 
 def settings(data_dir):
-  global class_names
+  global class_names, num_classes
 
   # Training settings
   train_ds = tf.keras.preprocessing.image_dataset_from_directory(
@@ -55,6 +55,7 @@ def settings(data_dir):
 
   # Class names in alphabetical order
   class_names = train_ds.class_names
+  num_classes = len(class_names)
   saveClassNames(class_names)
 
   # Configuring the dataset for performance
@@ -99,27 +100,29 @@ def dropout(data_augmentation):
 
 def compileModel(model):
   model.compile(optimizer='adam',
-                loss='binary_crossentropy',
+                loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
                 metrics=['accuracy'])
   return model
 
 
 def training(model, train_ds, val_ds):
-  epochs = 5
+  global epochs
+  epochs = 15
   history = model.fit(
     train_ds,
     validation_data=val_ds,
     epochs=epochs
   )
 
-  return model
+  return model, history
 
 
 def check(model):
   # sunflower_url = "https://storage.googleapis.com/download.tensorflow.org/example_images/592px-Red_sunflower.jpg"
-  # sunflower_path = tf.keras.utils.get_file('Red_sunflower', origin=sunflower_url)
+  # path = tf.keras.utils.get_file('Red_sunflower', origin=sunflower_url)
 
-  path = "./photos/paardenbloem.jpeg"
+  path = "./photos/resistors/1k.jpeg"
+  # path = "./photos/flowers/paardenbloem.jpeg"
 
   img = keras.preprocessing.image.load_img(
       path, target_size=(img_height, img_width)
@@ -152,12 +155,37 @@ def loadClassNames():
 
   return names
 
+def visualizeData(history):
+  # Visualizing data with Dropout & Augmentation
+  acc = history.history['accuracy']
+  val_acc = history.history['val_accuracy']
+
+  loss = history.history['loss']
+  val_loss = history.history['val_loss']
+
+  epochs_range = range(epochs)
+
+  plt.figure(figsize=(8, 8))
+  plt.subplot(1, 2, 1)
+  plt.plot(epochs_range, acc, label='Training Accuracy')
+  plt.plot(epochs_range, val_acc, label='Validation Accuracy')
+  plt.legend(loc='lower right')
+  plt.title('Training and Validation Accuracy')
+
+  plt.subplot(1, 2, 2)
+  plt.plot(epochs_range, loss, label='Training Loss')
+  plt.plot(epochs_range, val_loss, label='Validation Loss')
+  plt.legend(loc='upper right')
+  plt.title('Training and Validation Loss')
+  plt.show()
+
 
 if __name__ == "__main__":
   if len(sys.argv) > 1 and sys.argv[1].lower() == "new":
     train_ds, val_ds = settings(downloadDataset())
-    model = training(compileModel(dropout(augmentation())), train_ds, val_ds)
+    model, history = training(compileModel(dropout(augmentation())), train_ds, val_ds)
     saveModel(model)
+    visualizeData(history)
   else:
     model = loadModel()
     class_names = loadClassNames()

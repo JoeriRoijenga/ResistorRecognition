@@ -11,6 +11,7 @@ from tensorflow.keras.models import Sequential
 import sys
 import pathlib
 import json
+import os
 
 batch_size = 32
 img_height = 180
@@ -21,9 +22,13 @@ class_names = None
 
 
 def downloadDataset():
-  dataset_url = "https://storage.googleapis.com/download.tensorflow.org/example_images/flower_photos.tgz"
-  data_dir = tf.keras.utils.get_file('flower_photos', origin=dataset_url, untar=True)
-  data_dir = pathlib.Path(data_dir)
+  # dataset_url = "https://storage.googleapis.com/download.tensorflow.org/example_images/flower_photos.tgz"
+  # data_dir = tf.keras.utils.get_file('flower_photos', origin=dataset_url, untar=True)
+  # data_dir = pathlib.Path(data_dir)
+  # print(data_dir)
+
+  data_dir = os.getcwd() + "/resistors-dataset"
+  print(data_dir)
   return data_dir
 
 
@@ -39,7 +44,7 @@ def settings(data_dir):
     image_size=(img_height, img_width),
     batch_size=batch_size)
 
-  # Validatino settings
+  # Validation settings
   val_ds = tf.keras.preprocessing.image_dataset_from_directory(
     data_dir,
     validation_split=0.2,
@@ -94,13 +99,13 @@ def dropout(data_augmentation):
 
 def compileModel(model):
   model.compile(optimizer='adam',
-                loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+                loss='binary_crossentropy',
                 metrics=['accuracy'])
   return model
 
 
 def training(model, train_ds, val_ds):
-  epochs = 15
+  epochs = 5
   history = model.fit(
     train_ds,
     validation_data=val_ds,
@@ -136,9 +141,9 @@ def loadModel():
   return keras.models.load_model('./saves/model') 
 
 
-def saveClassNames():
+def saveClassNames(classes):
   with open('class_names.json', 'w') as file:
-    json.dump(class_names, file)
+    json.dump(classes, file)
 
 
 def loadClassNames():

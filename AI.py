@@ -16,10 +16,10 @@ import os
 batch_size = 32
 img_height = 180
 img_width = 180
+epochs = 5
 
 num_classes = None
 class_names = None
-epochs = None
 
 def downloadDataset():
   # dataset_url = "https://storage.googleapis.com/download.tensorflow.org/example_images/flower_photos.tgz"
@@ -27,8 +27,8 @@ def downloadDataset():
   # data_dir = pathlib.Path(data_dir)
   # print(data_dir)
 
-  data_dir = os.getcwd() + "/resistors-dataset"
-  print(data_dir)
+  data_dir = os.getcwd() + "/ds-new"
+  # print(data_dir)
   return data_dir
 
 
@@ -67,9 +67,8 @@ def settings(data_dir):
   return train_ds, val_ds
 
 
-def augmentation():
-  # Model based on Augmentation
-  return keras.Sequential(
+def createSequential():
+  data_augmentation = keras.Sequential(
     [
       layers.experimental.preprocessing.RandomFlip("horizontal", 
                                                   input_shape=(img_height, 
@@ -80,8 +79,6 @@ def augmentation():
     ]
   )
 
-
-def dropout(data_augmentation):
   return Sequential([
     data_augmentation,
     layers.experimental.preprocessing.Rescaling(1./255),
@@ -106,8 +103,6 @@ def compileModel(model):
 
 
 def training(model, train_ds, val_ds):
-  global epochs
-  epochs = 15
   history = model.fit(
     train_ds,
     validation_data=val_ds,
@@ -121,8 +116,8 @@ def check(model):
   # sunflower_url = "https://storage.googleapis.com/download.tensorflow.org/example_images/592px-Red_sunflower.jpg"
   # path = tf.keras.utils.get_file('Red_sunflower', origin=sunflower_url)
 
-  path = "./photos/resistors/1k.jpeg"
-  # path = "./photos/flowers/paardenbloem.jpeg"
+  path = "./photos/resistors/10k(internet).jpeg"
+  # path = "./photos/flowers/rose.jpg"
 
   img = keras.preprocessing.image.load_img(
       path, target_size=(img_height, img_width)
@@ -183,7 +178,7 @@ def visualizeData(history):
 if __name__ == "__main__":
   if len(sys.argv) > 1 and sys.argv[1].lower() == "new":
     train_ds, val_ds = settings(downloadDataset())
-    model, history = training(compileModel(dropout(augmentation())), train_ds, val_ds)
+    model, history = training(compileModel(createSequential()), train_ds, val_ds)
     saveModel(model)
     visualizeData(history)
   else:

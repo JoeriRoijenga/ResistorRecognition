@@ -15,46 +15,38 @@ import pathlib
 import json
 import os
 
-batch_size = 32
-img_height = 40
-img_width = 80
+batch_size = 10
+img_height = 50
+img_width = 100
 epochs = 15
 
 num_classes = None
 class_names = None
 
-def downloadDataset():
-  # dataset_url = "https://storage.googleapis.com/download.tensorflow.org/example_images/flower_photos.tgz"
-  # data_dir = tf.keras.utils.get_file('dataset', origin="./dataset.tgz", untar=True)
-  # data_dir = pathlib.Path(data_dir)
-  # print(data_dir)
 
-  # data_dir = os.getcwd() + "/ds-new"
-  data_dir = os.getcwd() + "/Dataset2"
-  # print(data_dir)
+def downloadDataset():
+  data_dir = os.getcwd() + "/dataset"
   return data_dir
+
+
+def creatingDatasetSettings(data_dir, split, type):
+  return tf.keras.preprocessing.image_dataset_from_directory(
+    data_dir,
+    validation_split=split, # Using % for validation
+    subset=type,
+    seed=123,
+    image_size=(img_height, img_width),
+    batch_size=batch_size)
 
 
 def settings(data_dir):
   global class_names, num_classes
 
   # Training settings
-  train_ds = tf.keras.preprocessing.image_dataset_from_directory(
-    data_dir,
-    validation_split=0.2, # Using 20% for validation
-    subset="training",
-    seed=123,
-    image_size=(img_height, img_width),
-    batch_size=batch_size)
+  train_ds = creatingDatasetSettings(data_dir, 0.3, "training")
 
   # Validation settings
-  val_ds = tf.keras.preprocessing.image_dataset_from_directory(
-    data_dir,
-    validation_split=0.2,
-    subset="validation",
-    seed=123,
-    image_size=(img_height, img_width),
-    batch_size=batch_size)
+  val_ds = creatingDatasetSettings(data_dir, 0.3, "validation")
 
   # Class names in alphabetical order
   class_names = train_ds.class_names
@@ -67,6 +59,12 @@ def settings(data_dir):
   train_ds = train_ds.cache().shuffle(1000).prefetch(buffer_size=AUTOTUNE)
   val_ds = val_ds.cache().prefetch(buffer_size=AUTOTUNE)
 
+  # showNinePhotos(train_ds)
+
+  return train_ds, val_ds
+
+
+def showNinePhotos(train_ds):
   plt.figure(figsize=(10, 10))
   for images, labels in train_ds.take(1):
     for i in range(9):
@@ -75,8 +73,6 @@ def settings(data_dir):
       plt.title(class_names[labels[i]])
       plt.axis("off")
   plt.show()
-
-  return train_ds, val_ds
 
 
 def createSequential():
@@ -91,7 +87,7 @@ def createSequential():
   )
 
   return Sequential([
-    data_augmentation,
+    # data_augmentation,
     layers.experimental.preprocessing.Rescaling(1./255),
     layers.Conv2D(16, 3, padding='same', activation='relu'),
     layers.MaxPooling2D(),
@@ -99,7 +95,7 @@ def createSequential():
     layers.MaxPooling2D(),
     layers.Conv2D(64, 3, padding='same', activation='relu'),
     layers.MaxPooling2D(),
-    layers.Dropout(0.2),
+    # layers.Dropout(0.2),
     layers.Flatten(),
     layers.Dense(128, activation='relu'),
     layers.Dense(num_classes)
@@ -129,21 +125,13 @@ def showImage(img):
   plt.axis('off')
   plt.show()
 
-def check(model):
-  # sunflower_url = "https://storage.googleapis.com/download.tensorflow.org/example_images/592px-Red_sunflower.jpg"
-  # path = tf.keras.utils.get_file('Red_sunflower', origin=sunflower_url)
 
-  path = "./photos/resistors/5-6.jpeg"
-  # path = "./ds-new/5.6k/1.jpg"
-  print(path)
-  # path = "./photos/flowers/rose.jpg"
-
+def check(model, path):
   img = keras.preprocessing.image.load_img(
       path, target_size=(img_height, img_width)
-      # path
   )
 
-  showImage(img)
+  # showImage(img)
 
   img_array = keras.preprocessing.image.img_to_array(img)
   img_array = tf.expand_dims(img_array, 0) # Create a batch
@@ -208,15 +196,27 @@ if __name__ == "__main__":
     model = loadModel()
     class_names = loadClassNames()
     
-  predictions, score = check(model)
 
-  print(
-      "This image most likely belongs to {} with a {:.2f} percent confidence."
-      .format(class_names[np.argmax(score)], 100 * np.max(score))
-  )
-  print()
-  print("Predictions:")
-  print("1M: " + str(round(np.max(score[0]) * 100)) + "%")
-  print("1k: " + str(round(np.max(score[1]) * 100)) + "%")
-  print("220: " + str(round(np.max(score[2]) * 100)) + "%")
-  print("5.6k: " + str(round(np.max(score[3]) * 100)) + "%")
+  paths = [
+    "./photos/resistors/220.jpeg",
+    "./photos/resistors/5.6k.jpeg",
+    "./photos/resistors/1M.jpeg",
+    "./photos/resistors/1k.jpeg"
+  ]
+  for path in paths:
+    predictions, score = check(model, path)
+    print()
+    print(path)
+    print()
+
+    print(
+        "This image most likely belongs to {} with a {:.2f} percent confidence."
+        .format(class_names[np.argmax(score)], 100 * np.max(score))
+    )
+
+    print()
+    print("Predictions:")
+    print("1M: " + str(round(np.max(score[0]) * 100)) + "%")
+    print("1k: " + str(round(np.max(score[1]) * 100)) + "%")
+    print("220: " + str(round(np.max(score[2]) * 100)) + "%")
+    print("5.6k: " + str(round(np.max(score[3]) * 100)) + "%")

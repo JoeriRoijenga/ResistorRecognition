@@ -1,9 +1,11 @@
 import cv2
 import numpy as np
 import time
+import os, os.path
 run = 0
 
 
+# Stack images in one window (mostly for debugging)
 def stackImages(scale,imgArray):
     rows = len(imgArray)
     cols = len(imgArray[0])
@@ -36,50 +38,64 @@ def stackImages(scale,imgArray):
     return ver
 
 
-#RETR_EXTERNAL
+# Function getContours
 def getContours(img, orig):
     contours, hierarchy = cv2.findContours(img, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
     for cnt in contours:
         area = cv2.contourArea(cnt)
-        if area > 4000:
+        if area > 5000:                                                               # Offset for wrong readings
             print(area)
-            global run
-            run = run + 1
-            cv2.drawContours(imgContour, [cnt], 0, (255, 0, 0), 3)
+            cv2.drawContours(imgContour, [cnt], 0, (255, 0, 0), 3)                    # Draw contour
             peri = cv2.arcLength(cnt, False)
             approx = cv2.approxPolyDP(cnt, 0.02 * peri, False)
-            print(len(approx))
             objCor = len(approx)
             x, y, w, h = cv2.boundingRect(approx)
-            cv2.rectangle(imgContour, (x, y), (x + w, y + h), (0, 255, 0), 2)
-            imgCropped = orig[y:y + h, x:x + w]
-            time.sleep(1)
-            cv2.imwrite("./crop/" + str(run) + ".jpg", imgCropped)
+            if w >= 400 and h >= 30:                                                  # Offset for contour mismatch
+                cv2.rectangle(imgContour, (x, y), (x + w, y + h), (0, 255, 0), 2)     # Show rectangle around contour
+                x = x + 230                                                           # Crop only middle part of resistor
+                w = w - 460                                                           # " "
+
+                imgCropped = orig[y:y + h, x:x + w]                                   # Crop resistor
+                imgCropped = cv2.resize(imgCropped, cropsize, 0, 0, cv2.INTER_AREA)   # Resize crop to 150, 50 pixels
+
+                cv2.imshow("Crop", imgCropped)                                        # Show cropped image
+                time.sleep(0.5)                                                       # Sleep for stability
+                global run                                                            # Counter for how many samples
+                run = run + 1
+                print(run)
+                cv2.imwrite("./crop/" + str(run) + ".jpg", imgCropped)                # Save cropped image
 
 
-
-frameWidth = 640
-frameHeight = 480
+# Init camera
+frameWidth = 1920
+frameHeight = 1080
 cap = cv2.VideoCapture(0)
-cap.set(3, frameWidth)
-cap.set(4, frameHeight)
+cap.set(16, frameWidth)
+cap.set(9, frameHeight)
+
+# Output
+cropsize = (150, 50)
+
+# Save output
+Dir = "./crop/"
+filecount = next(os.walk(Dir))[2]
+run = (len(filecount) - 1)
 
 
+# Main
 while True:
-    success, img = cap.read()
-    imgContour = img.copy()
-    imgGray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    imgBlur = cv2.GaussianBlur(imgGray, (7, 7), 1)
-    imgCanny = cv2.Canny(img, 100, 200)
-    #imgResult = findColor(img, myColors)
+    success, img = cap.read()                                               # Open camera
+    imgContour = img.copy()                                                 # Copy image
+    imgGray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)                         # Gray filter
+    imgBlur = cv2.GaussianBlur(imgGray, (7, 7), cv2.BORDER_REPLICATE)       # Blur filter
+    thresh = cv2.threshold(imgBlur, 200, 255, cv2.THRESH_BINARY)[1]         # Threshhold for glare
+    thresh = cv2.erode(thresh, None, iterations=5)                          # Erode filter
+    thresh = cv2.dilate(thresh, None, iterations=5)                         # Dilate filter
+    imgCanny = cv2.Canny(thresh, 50, 50)                                    # Canny filter
 
+    getContours(imgCanny, img)                                              # Call function getContours
+    imgStack = stackImages(1, ([img, imgCanny, imgContour]))                # Stack input, cannyfilter and contours
+    cv2.imshow("Stack", imgStack)                                           # Show stack in one window
 
-    getContours(imgCanny, img)
-    cropped = cv2.imread("./crop/" + str(run) + ".jpg")
-    imgStack = stackImages(0.6, ([img, imgCanny, imgContour]))
-    cv2.imshow("Crop", cropped)
-    cv2.imshow("Stack", imgStack)
-
-    if cv2.waitKey(1) & 0xFF == ord('q'):
+    if cv2.waitKey(1) & 0xFF == ord('q'):                                   # Show stack until next image or 'q'
         break
-

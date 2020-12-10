@@ -4,8 +4,6 @@ import os
 import PIL
 import tensorflow as tf
 
-import tensorflow_io as tfio
-
 from tensorflow import keras
 from tensorflow.keras import layers
 from tensorflow.keras.models import Sequential

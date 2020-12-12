@@ -197,9 +197,9 @@ if __name__ == "__main__":
 
   paths = [
     "./photos/resistors/220.jpeg",
-    "./photos/resistors/5.6k.jpeg",
-    "./photos/resistors/1M.jpeg",
-    "./photos/resistors/1k.jpeg"
+    # "./photos/resistors/5.6k.jpeg",
+    # "./photos/resistors/1M.jpeg",
+    # "./photos/resistors/1k.jpeg"
   ]
   for path in paths:
     predictions, score = check(model, path)

@@ -12,6 +12,6 @@ A program that recognizes a resistor based on a trained dataset.
 * Nummpy
 * PIL
 
-## Project members
+## Project members (Hanzehogeschool Groningen)
 * Joeri Roijenga
 * Peter Kolhorn
